@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Gestión Hospitalaria</title>
+    <style>
+        body { font-family: Arial; padding: 20px; background: #f5f5f5; }
+        h2 { color: #003366; }
+        .seccion { border: 1px solid #ccc; padding: 15px; margin-bottom: 20px; background: #fff; }
+        label, input, select, textarea { display: block; margin-top: 10px; }
+        button { margin-top: 10px; padding: 6px 12px; background: #0055aa; color: white; border: none; }
+        .resultado { margin-top: 10px; background: #e8f0fe; padding: 10px; }
+    </style>
+</head>
+<body>
+
+    <h1>Sistema de Gestión Hospitalaria</h1>
+
+    <!-- 1. Solicitar turno -->
+    <div class="seccion">
+        <h2>1. Solicitar Turno</h2>
+        <form id="form-turno">
+            <label>Nombre:</label>
+            <input type="text" id="nombre" required>
+
+            <label>Síntomas:</label>
+            <textarea id="sintomas" required></textarea>
+
+            <label>Nivel de Urgencia (1 = crítica, 5 = leve):</label>
+            <select id="urgencia" required>
+                <option value="1">1 - Crítica</option>
+                <option value="2">2 - Alta</option>
+                <option value="3">3 - Media</option>
+                <option value="4">4 - Baja</option>
+                <option value="5">5 - Leve</option>
+            </select>
+
+            <button type="submit">Solicitar Turno</button>
+        </form>
+        <div id="resultado-turno" class="resultado"></div>
+    </div>
+
+    <!-- 2. Ver stock de medicamentos -->
+    <div class="seccion">
+        <h2>2. Ver Stock de Medicamentos</h2>
+        <label>Buscar medicamento:</label>
+        <input type="text" id="buscador-med">
+
+        <button onclick="buscarMedicamento()">Buscar</button>
+        <div id="resultado-med" class="resultado"></div>
+    </div>
+
+    <!-- 3. Ver relaciones médico-paciente -->
+    <div class="seccion">
+        <h2>3. Ver Pacientes Asignados a un Médico</h2>
+        <label>Nombre del médico:</label>
+        <input type="text" id="medico-buscar">
+
+        <button onclick="buscarPacientes()">Consultar</button>
+        <div id="resultado-grafo" class="resultado"></div>
+    </div>
+
+    <script>
+        // 1. Enviar solicitud de turno
+        document.getElementById("form-turno").addEventListener("submit", function(e) {
+            e.preventDefault();
+            const data = {
+                nombre: document.getElementById("nombre").value,
+                sintomas: document.getElementById("sintomas").value,
+                urgencia: parseInt(document.getElementById("urgencia").value)
+            };
+            fetch("/api/turno", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data)
+            })
+            .then(res => res.json())
+            .then(res => {
+                document.getElementById("resultado-turno").innerText = res.mensaje || "Turno solicitado correctamente.";
+            });
+        });
+
+        // 2. Buscar medicamento
+        function buscarMedicamento() {
+            const nombre = document.getElementById("buscador-med").value;
+            fetch(`/api/medicamento?nombre=${nombre}`)
+                .then(res => res.json())
+                .then(res => {
+                    if (res.encontrado) {
+                        const critico = res.cantidad < 10 ? " (Crítico)" : "";
+                        document.getElementById("resultado-med").innerText = 
+                            `Nombre: ${res.nombre} | Cantidad: ${res.cantidad}${critico}`;
+                    } else {
+                        document.getElementById("resultado-med").innerText = "Medicamento no encontrado.";
+                    }
+                });
+        }
+
+        // 3. Buscar pacientes de un médico
+        function buscarPacientes() {
+            const medico = document.getElementById("medico-buscar").value;
+            fetch(`/api/relaciones?medico=${medico}`)
+                .then(res => res.json())
+                .then(res => {
+                    if (res.pacientes && res.pacientes.length > 0) {
+                        document.getElementById("resultado-grafo").innerText = 
+                            `Pacientes: ${res.pacientes.join(", ")}`;
+                    } else {
+                        document.getElementById("resultado-grafo").innerText = "Sin pacientes asignados.";
+                    }
+                });
+        }
+    </script>
+
+</body>
+</html>
