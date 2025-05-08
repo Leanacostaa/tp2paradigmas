@@ -37,3 +37,95 @@ class Turnero:
                 return paciente
         print("No hay pacientes en espera.")
         return None
+
+
+
+
+codigo en php ( para enlazarlo) 
+<?php
+
+class Paciente {
+    public $nombre;
+    public $dni;
+    public $urgencia;
+
+    public function __construct($nombre, $dni, $urgencia) {
+        $this->nombre = $nombre;
+        $this->dni = $dni;
+        $this->urgencia = $urgencia;
+    }
+
+    public function __toString() {
+        return "{$this->nombre} (DNI: {$this->dni}) - Urgencia: {$this->urgencia}";
+    }
+}
+
+class Turnero {
+    private $cola_turnos = [];       // Cola de prioridad (array de arrays: [urgencia, contador, paciente])
+    private $entry_finder = [];      // Mapear DNI a entrada
+    private $contador = 0;
+
+    public function solicitar_turno(Paciente $paciente) {
+        if (isset($this->entry_finder[$paciente->dni])) {
+            echo "Este paciente ya tiene un turno.\n";
+            return;
+        }
+
+        $entrada = [
+            'urgencia' => $paciente->urgencia,
+            'contador' => $this->contador++,
+            'paciente' => $paciente
+        ];
+
+        $this->cola_turnos[] = $entrada;
+        $this->entry_finder[$paciente->dni] = $entrada;
+
+        echo "Turno asignado a {$paciente->nombre} con prioridad {$paciente->urgencia}\n";
+    }
+
+    public function llamar_siguiente() {
+        if (empty($this->cola_turnos)) {
+            echo "No hay pacientes en espera.\n";
+            return null;
+        }
+
+        // Ordenar por urgencia y contador
+        usort($this->cola_turnos, function ($a, $b) {
+            if ($a['urgencia'] === $b['urgencia']) {
+                return $a['contador'] <=> $b['contador'];
+            }
+            return $a['urgencia'] <=> $b['urgencia'];
+        });
+
+        foreach ($this->cola_turnos as $i => $entrada) {
+            $paciente = $entrada['paciente'];
+            if (isset($this->entry_finder[$paciente->dni])) {
+                unset($this->entry_finder[$paciente->dni]);
+                array_splice($this->cola_turnos, $i, 1); // Eliminar del array
+                echo "Llamando a: $paciente\n";
+                return $paciente;
+            }
+        }
+
+        echo "No hay pacientes en espera.\n";
+        return null;
+    }
+}
+
+// Ejemplo de uso
+$turnero = new Turnero();
+
+$p1 = new Paciente("Ana", "123", 2);
+$p2 = new Paciente("Juan", "456", 1);
+$p3 = new Paciente("Luis", "789", 3);
+
+$turnero->solicitar_turno($p1);
+$turnero->solicitar_turno($p2);
+$turnero->solicitar_turno($p3);
+
+$turnero->llamar_siguiente();  // Juan
+$turnero->llamar_siguiente();  // Ana
+$turnero->llamar_siguiente();  // Luis
+$turnero->llamar_siguiente();  // No hay pacientes
+
+?>
